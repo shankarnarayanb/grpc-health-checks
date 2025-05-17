@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package roomservice;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "demo/pb";
+
+message Order {
+    google.protobuf.Timestamp order_time = 1;
+    float cost = 2;
+    map<string, Meal> meals = 3; // key is orderer's name
+}
+
+message Meal {
+    Entree entree = 1;
+    Drink drink = 2;
+    repeated Side sides = 3;
+}
+
+message Entree {
+    string type = 1;
+    repeated string notes = 2;
+}
+
+enum Size {
+    SIZE_UNSPECIFIED = 0;
+    SIZE_SMALL = 1;
+    SIZE_MEDIUM = 2;
+    SIZE_LARGE = 3;
+}
+
+message Drink {
+    string type = 1;
+    Size size = 2;
+}
+
+message Side{
+    string type = 1;
+    Size size = 2;
+    repeated string notes = 3;
+}
+
