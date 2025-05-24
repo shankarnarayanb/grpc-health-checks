@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+// Package declaration helps avoid naming conflicts
+package health.v1;
+
+// Optional: Specify code generation options
+option go_package = "github.com/shankarnarayanb/health/v1;healthv1";
+option java_package = "com.shankarnarayanb.health.v1";
+option java_outer_classname = "HealthServiceProto";
+
+// Core health check service definition
+service HealthService {
+    // Liveness check - fast response to determine if process is running
+    rpc Ping(PingRequest) returns (PingResponse);
+
+    // Readiness check - comprehensive validation including dependencies
+    rpc CheckHealth(HealthCheckRequest) returns (HealthCheckResponse);
+
+    // Stream health status updates (demonstrates streaming RPC)
+    rpc WatchHealth(HealthWatchRequest) returns (stream HealthCheckResponse);
+}
+
+// Simple ping for liveness verification
+message PingRequest {
+    // Empty request - minimal overhead for liveness checks
+    // Note: In proto3, you can have empty messages
+}
+
+message PingResponse {
+    bool success = 1;
+    string version = 2;      // Service version for deployment tracking
+    int64 timestamp_ms = 3;  // Response timestamp for latency measurement
+}
+
+// Comprehensive health check request
+message HealthCheckRequest {
+    repeated string components = 1; // Optional: specify which components to check
+    bool include_dependencies = 2;  // Whether to verify external dependencies
+    int32 timeout_seconds = 3;      // Maximum time to spend on health check
+}
+
+// Request for watching health status changes
+message HealthWatchRequest {
+    repeated string components = 1; // Components to watch
+    int32 interval_seconds = 2;     // How often to check (default: 30s)
+}
+
+// Detailed health status response
+message HealthCheckResponse {
+    // Enum defines a set of named constants
+    enum ServiceStatus {
+        UNKNOWN = 0;        // Status cannot be determined (must be first and = 0)
+        HEALTHY = 1;        // Service is fully operational
+        DEGRADED = 2;       // Service operational but with reduced functionality
+        UNHEALTHY = 3;      // Service cannot process requests
+        MAINTENANCE = 4;    // Service temporarily unavailable for maintenance
+    }
+
+    ServiceStatus overall_status = 1;
+    map<string, ComponentHealth> components = 2;  // Individual component status
+    int64 total_check_duration_ms = 3;           // Time taken for complete check
+    string error_message = 4;                    // Human-readable error summary
+    repeated string warnings = 5;                // Non-critical issues
+
+    // Demonstrating oneof - only one of these fields will be set
+    oneof additional_info {
+        MaintenanceInfo maintenance_info = 6;
+        ErrorDetails error_details = 7;
+    }
+}
+
+// Individual component health status
+message ComponentHealth {
+    bool available = 1;           // Component is reachable and functional
+    bool functional = 2;          // Component can perform required operations
+    string error_details = 3;     // Specific error information if unhealthy
+    int64 response_time_ms = 4;   // Component response time
+    repeated DependentComponent dependencies = 5; // Nested dependency status
+
+    // Demonstrating optional field (explicit in proto3)
+    optional string last_check_info = 6; // Additional context about last check
+}
+
+// Dependency component status
+message DependentComponent {
+    string name = 1;              // Dependency identifier (e.g., "payment-service")
+    bool available = 2;           // Dependency is reachable
+    string error_details = 3;     // Error information if unavailable
+    string version = 4;           // Dependency version if available
+    int64 last_successful_check = 5; // Timestamp of last successful check
+}
+
+// Additional message types to demonstrate more concepts
+message MaintenanceInfo {
+    int64 start_time = 1;
+    int64 estimated_end_time = 2;
+    string reason = 3;
+}
+
+message ErrorDetails {
+    int32 error_code = 1;
+    string error_category = 2;
+    repeated string stack_trace = 3;
+}
